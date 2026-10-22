@@ -1,0 +1,109 @@
+erDiagram
+    students {
+        BIGINT student_id PK
+        VARCHAR student_no UK "가상 학번(비노출)"
+        VARCHAR nickname UK "익명 닉네임"
+        VARCHAR department
+        TINYINT year_level "1~6"
+        TINYINT max_credits "기본 19"
+        DATETIME blocked_until "이용 제한 종료"
+        DATETIME created_at
+    }
+    courses {
+        BIGINT course_id PK
+        VARCHAR course_code UK "학수번호"
+        VARCHAR course_name
+        VARCHAR department
+        VARCHAR course_type
+    }
+    course_offerings {
+        BIGINT offering_id PK
+        BIGINT course_id FK
+        VARCHAR section_no "분반"
+        VARCHAR professor_name
+        TINYINT credits
+        SMALLINT capacity
+        VARCHAR classroom
+    }
+    class_times {
+        BIGINT class_time_id PK
+        BIGINT offering_id FK
+        TINYINT weekday "1=월..7=일"
+        TIME start_time
+        TIME end_time
+    }
+    enrollments {
+        BIGINT enrollment_id PK
+        BIGINT student_id FK
+        BIGINT offering_id FK
+        BIGINT course_id "(offering_id,course_id) 복합 FK"
+        DATETIME enrolled_at
+        INT version "낙관적 락"
+    }
+    wishlists {
+        BIGINT wishlist_id PK
+        BIGINT student_id FK
+        BIGINT offering_id FK
+        DATETIME created_at
+    }
+    exchange_requests {
+        BIGINT request_id PK
+        BIGINT student_id FK
+        BIGINT offered_enrollment_id FK "내놓는 수강 내역"
+        VARCHAR status "WAITING/MATCHED/COMPLETED/CANCELLED"
+        DATETIME queued_at
+        BIGINT active_enrollment_id UK "생성 컬럼(진행 중일 때만)"
+    }
+    exchange_preferences {
+        BIGINT preference_id PK
+        BIGINT request_id FK
+        BIGINT target_offering_id FK "희망 분반"
+        TINYINT preference_rank "1이 최우선"
+    }
+    match_sessions {
+        BIGINT session_id PK
+        VARCHAR status "PENDING/COMPLETED/REJECTED/EXPIRED/INVALIDATED"
+        DATETIME opened_at
+        DATETIME first_accepted_at
+        DATETIME expires_at
+        DATETIME finished_at
+        DATETIME rematch_allowed_at
+    }
+    match_participants {
+        BIGINT participant_id PK
+        BIGINT session_id FK
+        BIGINT request_id FK
+        BIGINT student_id FK
+        BIGINT offered_enrollment_id FK
+        BIGINT give_offering_id FK "스냅샷"
+        BIGINT receive_offering_id FK "스냅샷"
+        VARCHAR response_status "PENDING/ACCEPTED/REJECTED"
+        DATETIME responded_at
+        TINYINT wake_sent_count "0~3"
+    }
+    penalty_events {
+        BIGINT penalty_event_id PK
+        BIGINT student_id FK
+        BIGINT session_id FK
+        VARCHAR reason_code "REJECTED/NO_RESPONSE/ABUSE"
+        TINYINT deduction_points
+        VARCHAR idempotency_key UK
+        DATETIME created_at
+    }
+
+    courses ||--o{ course_offerings : "개설"
+    course_offerings ||--o{ class_times : "수업 시간"
+    students ||--o{ enrollments : "수강"
+    course_offerings ||--o{ enrollments : "수강생"
+    students ||--o{ wishlists : "찜"
+    course_offerings ||--o{ wishlists : "찜 대상"
+    students ||--o{ exchange_requests : "요청"
+    enrollments ||--o{ exchange_requests : "내놓는 좌석"
+    exchange_requests ||--|{ exchange_preferences : "희망 분반"
+    course_offerings ||--o{ exchange_preferences : "목표 분반"
+    match_sessions ||--|{ match_participants : "참여자(2명)"
+    exchange_requests ||--o{ match_participants : "요청"
+    students ||--o{ match_participants : "참여"
+    enrollments ||--o{ match_participants : "제공 좌석"
+    students ||--o{ penalty_events : "감점"
+    match_sessions ||--o{ penalty_events : "관련 세션"
