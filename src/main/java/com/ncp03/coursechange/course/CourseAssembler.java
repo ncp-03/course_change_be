@@ -58,7 +58,7 @@ public class CourseAssembler {
     }
 
     public CourseResponse toResponse(CourseOffering offering) {
-        return toResponses(List.of(offering)).getFirst();
+        return toResponses(List.of(offering)).get(0);
     }
 
     private static Map<Long, Long> toCountMap(Collection<Object[]> rows) {
